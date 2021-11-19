@@ -1,0 +1,57 @@
+version: "3.9"
+services:
+    web:
+        container_name: web
+        build: ./app
+        networks:
+            - webnet
+        env_file:
+            - ./app/.env
+        expose:
+            - "80"
+        ports:
+            - "80:3000"
+    db:
+        container_name: db
+        image: mysql:8
+        networks:
+            - webnet
+            - phpmanet
+        volumes:
+            - sqldata:/var/lib/mysql 
+        env_file:
+            - ./server/.env
+        ports:
+            - "3306:3306"
+        expose:
+            - "3306"
+        restart: unless-stopped
+    phpma:
+        container_name: phpma
+        image: phpmyadmin/phpmyadmin:5.1
+        env_file:
+            - ./server/.env
+        depends_on:
+            - db
+        networks:
+            - phpmanet
+        ports:
+            - "8080:80"
+        restart: unless-stopped
+    api:
+        container_name: api
+        build: ./server
+        expose:
+            - "5000"
+        ports:
+            - "5000:5000"
+        networks:
+            - webnet
+        depends_on: 
+            - db
+        entrypoint: ["/server/wait-for.sh", "db:3306", "--", "/server/entrypoint.sh"]
+networks:
+    webnet:
+    phpmanet:
+volumes:
+    sqldata:
